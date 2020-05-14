@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"context"
+    "time"
+    "log"
+    "errors"
 
 	"golang.org/x/oauth2"
 	"github.com/google/go-github/v31/github"	// with go modules enabled (GO111MODULE=on or outside GOPATH)
@@ -25,16 +28,25 @@ func main() {
     // list all repositories for the authenticated user
     repos, _, err := client.Repositories.List(ctx, "umutphp", nil)
 
-    for i:=0;i<MAX_GOR_COUNT;i++ {
-    	go repoStat(repoChannel, halt, client, ctx)
-    }
-    
-    if err == nil {
-    	for _,repo := range repos {
-    		repoChannel <- repo
-    	}
+    if err != nil {
+        log.Fatal(err)
     }
 
+    if len(repos) == 0 {
+        log.Fatal(errors.New("umutphp has no repositories"))
+    }
+
+    accountTotal  := make(chan int, len(repos))
+    accountUnique := make(chan int, len(repos))
+
+    for i:=0;i<MAX_GOR_COUNT;i++ {
+    	go repoStat(accountTotal, accountUnique, repoChannel, halt, client, ctx)
+    }
+    
+	for _,repo := range repos {
+		repoChannel <- repo
+	}
+    
     close(repoChannel)
 
     finishedCount := 0
@@ -43,20 +55,47 @@ func main() {
 
     	if finishedCount == MAX_GOR_COUNT {
     		close(halt)
+            close(accountTotal)
+            close(accountUnique)
     	}
 	}
+
+    total := 0
+    for t := range accountTotal {
+        total += t
+    }
+
+    unique := 0
+    for u := range accountUnique {
+        unique += u
+    }
+
+    fmt.Println("Total", total, unique)
 }
 
-func repoStat(c chan *github.Repository, halt chan int, client *github.Client, ctx context.Context) {
+func repoStat(
+    accountTotal chan int,
+    accountUnique chan int,
+    c chan *github.Repository,
+    halt chan int,
+    client *github.Client,
+    ctx context.Context) {
+
 	for repo := range c {
 		stats,_,_ := client.Repositories.ListTrafficViews(ctx, "umutphp", repo.GetName(), nil)
-		fmt.Printf("%s\n", repo.GetFullName())
-		fmt.Println("")
-		fmt.Println(stats.GetCount(), stats.GetUniques())
 
+        viewCount   := 0
+        uniqueCount := 0
 		for _,view := range stats.Views {
-			fmt.Println(view.GetTimestamp(), view.GetCount(), view.GetUniques())
+            if (view.GetTimestamp().After(time.Now().AddDate(0, 0, -1))) {
+                uniqueCount += view.GetUniques()
+                viewCount   += view.GetCount()
+            }
 		}
+
+        fmt.Println(repo.GetFullName(), viewCount, uniqueCount)
+        accountTotal <- viewCount
+        accountUnique <- uniqueCount
 	}
 
 	halt <- 1
