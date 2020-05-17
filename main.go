@@ -6,15 +6,17 @@ import (
     "time"
     "log"
     "errors"
+    "os"
+    "text/tabwriter"
+    "io"
 
 	"golang.org/x/oauth2"
-	"github.com/google/go-github/v31/github"	// with go modules enabled (GO111MODULE=on or outside GOPATH)
+	"github.com/google/go-github/v31/github"
 )
 
-
-const MAX_GOR_COUNT = 4
-
 func main() {
+    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+    defer w.Flush()
     ctx := context.Background()
     ts := oauth2.StaticTokenSource(
         &oauth2.Token{AccessToken: "07a4574f57fdbe125f37afab2264b64a9cde8d82"},
@@ -36,11 +38,15 @@ func main() {
         log.Fatal(errors.New("umutphp has no repositories"))
     }
 
-    accountTotal  := make(chan int, len(repos))
-    accountUnique := make(chan int, len(repos))
+    repoCount     := len(repos)
+    accountTotal  := make(chan int, repoCount)
+    accountUnique := make(chan int, repoCount)
 
-    for i:=0;i<MAX_GOR_COUNT;i++ {
-    	go repoStat(accountTotal, accountUnique, repoChannel, halt, client, ctx)
+    fmt.Fprintf(w, "Repository\tTotal View\tUnique View\t\n")
+
+    fmt.Print("Checking repositories ")
+    for i:=0;i<repoCount;i++ {
+    	go repoStat(w, accountTotal, accountUnique, repoChannel, halt, client, ctx)
     }
     
 	for _,repo := range repos {
@@ -53,10 +59,12 @@ func main() {
     for finished := range halt {
     	finishedCount = finishedCount + finished
 
-    	if finishedCount == MAX_GOR_COUNT {
+    	if finishedCount == repoCount {
     		close(halt)
             close(accountTotal)
             close(accountUnique)
+            fmt.Println("")
+            fmt.Println("")
     	}
 	}
 
@@ -70,10 +78,11 @@ func main() {
         unique += u
     }
 
-    fmt.Println("Total", total, unique)
+    fmt.Fprintf(w, "Total\t%d\t%d\t\n", total, unique)
 }
 
 func repoStat(
+    w io.Writer,
     accountTotal chan int,
     accountUnique chan int,
     c chan *github.Repository,
@@ -82,18 +91,19 @@ func repoStat(
     ctx context.Context) {
 
 	for repo := range c {
+        fmt.Print(".")
 		stats,_,_ := client.Repositories.ListTrafficViews(ctx, "umutphp", repo.GetName(), nil)
 
         viewCount   := 0
         uniqueCount := 0
 		for _,view := range stats.Views {
-            if (view.GetTimestamp().After(time.Now().AddDate(0, 0, -1))) {
+            if (view.GetTimestamp().After(time.Now().UTC().AddDate(0, 0, -1))) {
                 uniqueCount += view.GetUniques()
                 viewCount   += view.GetCount()
             }
 		}
 
-        fmt.Println(repo.GetFullName(), viewCount, uniqueCount)
+        fmt.Fprintf(w, "%s\t%d\t%d\t\n", repo.GetFullName(), viewCount, uniqueCount)
         accountTotal <- viewCount
         accountUnique <- uniqueCount
 	}
