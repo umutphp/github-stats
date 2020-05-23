@@ -8,8 +8,11 @@ import (
 )
 
 func main() {
+    CLI := cli.New()
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
     defer w.Flush()
 
-    cli.Execute(w)
+    if CLI.Initialize() == true {
+        CLI.Execute(w)
+    }
 }
