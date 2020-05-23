@@ -3,10 +3,9 @@ package cli
 import (
 	"fmt"
 	"context"
-	"log"
-	"errors"
 	"io"
 	"time"
+	"math"
 
 	"golang.org/x/oauth2"
 	"github.com/google/go-github/v31/github"
@@ -15,6 +14,8 @@ import (
 type CLI struct {
 	username string
 	token string
+	day int
+	verbose int
 	client *github.Client
 	context context.Context
 	accountTotalChannel chan int
@@ -23,11 +24,15 @@ type CLI struct {
     haltChannel chan int
 }
 
-func New() CLI {
+func New(token string) CLI {
 	cli := CLI{
 		username: "",
-		token: "07a4574f57fdbe125f37afab2264b64a9cde8d82",
+		token: "",
+		day: 0,
+		verbose: 1,
 	}
+
+	cli.SetToken(token)
 
 	cli.context  = context.Background()
     tokenSource := oauth2.StaticTokenSource(
@@ -45,10 +50,22 @@ func New() CLI {
 	return cli
 }
 
+func (cli *CLI) SetToken(token string) {
+	cli.token = token
+}
+
+func (cli *CLI) SetDay(day int) {
+	cli.day = day
+}
+
+func (cli *CLI) SetVerbose(verbose int) {
+	cli.verbose = verbose
+}
+
 func (cli *CLI) Initialize() bool {
 	user, _, err := cli.client.Users.Get(cli.context, "")
     if err != nil {
-        fmt.Printf("client.Users.Get() faled with '%s'\n", err)
+        fmt.Println("GitHub API authentication failed. Token may be invalid.")
         return false
     }
 	
@@ -61,11 +78,13 @@ func (cli *CLI) GetRepos() []*github.Repository {
     repos, _, err := cli.client.Repositories.List(cli.context, cli.username, nil)
 
     if err != nil {
-        log.Fatal(err)
+    	fmt.Println("Cannot fetch repositories from GitHub. Error message:", err)
+        return []*github.Repository{}
     }
 
     if len(repos) == 0 {
-        log.Fatal(errors.New("User has no repositories"))
+        fmt.Println("User has no repositories")
+        return []*github.Repository{}
     }
 
     return repos
@@ -73,19 +92,27 @@ func (cli *CLI) GetRepos() []*github.Repository {
 
 func (cli *CLI) RepoStat(w io.Writer) {
 	for repo := range cli.repoChannel {
-        fmt.Print(".")
+		if cli.verbose == 1 {
+	        fmt.Print(".")
+	    }
+		
 		stats,_,_ := cli.client.Repositories.ListTrafficViews(cli.context, cli.username, repo.GetName(), nil)
 
         viewCount   := 0
         uniqueCount := 0
+        dayDiff     := int(math.Abs(float64(cli.day))) + 1
+
 		for _,view := range stats.Views {
-            if (view.GetTimestamp().After(time.Now().UTC().AddDate(0, 0, -1))) {
+            if (view.GetTimestamp().After(time.Now().UTC().AddDate(0, 0, -dayDiff))) {
                 uniqueCount += view.GetUniques()
                 viewCount   += view.GetCount()
             }
 		}
 
-        fmt.Fprintf(w, "%s\t%d\t%d\t\n", repo.GetFullName(), viewCount, uniqueCount)
+        if cli.verbose == 1 {
+        	fmt.Fprintf(w, "%s\t%d\t%d\t\n", repo.GetFullName(), viewCount, uniqueCount)
+        }
+
         cli.accountTotalChannel <- viewCount
         cli.accountUniqueChannel <- uniqueCount
 	}
@@ -94,15 +121,18 @@ func (cli *CLI) RepoStat(w io.Writer) {
 }
 
 func (cli *CLI) Execute(w io.Writer) {
+	fmt.Print("Checking repositories ")
+	
     repos     := cli.GetRepos()
     repoCount := len(repos)
     
     cli.accountTotalChannel  = make(chan int, repoCount)
     cli.accountUniqueChannel = make(chan int, repoCount)
 
-	fmt.Fprintf(w, "Repository\tTotal View\tUnique View\t\n")
+    if cli.verbose == 1 {
+		fmt.Fprintf(w, "Repository\tTotal View\tUnique View\t\n")
+	}
 
-    fmt.Print("Checking repositories ")
     for i:=0;i<repoCount;i++ {
         go cli.RepoStat(w)
     }
@@ -128,8 +158,6 @@ func (cli *CLI) Finiliaze(
     		close(cli.haltChannel)
             close(cli.accountTotalChannel)
             close(cli.accountUniqueChannel)
-            fmt.Println("")
-            fmt.Println("")
     	}
 	}
 
@@ -143,5 +171,6 @@ func (cli *CLI) Finiliaze(
         unique += u
     }
 
-    fmt.Fprintf(w, "Total\t%d\t%d\t\n", total, unique)
+    fmt.Fprintln(w, "")
+    fmt.Fprintln(w, "Total View:", total, ", Unique View:", unique)
 }
