@@ -1,10 +1,16 @@
 # github-stats
-Command-line tool to get the total traffics statistics on your GitHub account
+Command-line tool to get the total traffic statistics of your GitHub repositories.
 
 ## How To Use
 
+Statistics for today:
 ```bash
 github-stats --token A_Valid_Personal_Access_Token
+```
+
+Statistics for last 7 days:
+```bash
+github-stats --token A_Valid_Personal_Access_Token --day 7
 ```
 
 For details please use `--help` as argument;
