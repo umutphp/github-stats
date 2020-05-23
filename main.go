@@ -21,8 +21,8 @@ func main() {
 
         CLI.SetDay(c.Int("day"))
 
-        if c.Int("verbose") == 0 {
-            CLI.SetVerbose(c.Int("verbose"))
+        if c.Int("show-details") == 0 {
+            CLI.ShowDetails(c.Int("show-details"))
         }
 
         if CLI.Initialize() == true {

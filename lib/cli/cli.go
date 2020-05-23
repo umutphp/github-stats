@@ -15,7 +15,7 @@ type CLI struct {
 	username string
 	token string
 	day int
-	verbose int
+	showDetails int
 	client *github.Client
 	context context.Context
 	accountTotalChannel chan int
@@ -29,7 +29,7 @@ func New(token string) CLI {
 		username: "",
 		token: "",
 		day: 0,
-		verbose: 1,
+		showDetails: 1,
 	}
 
 	cli.SetToken(token)
@@ -58,14 +58,14 @@ func (cli *CLI) SetDay(day int) {
 	cli.day = day
 }
 
-func (cli *CLI) SetVerbose(verbose int) {
-	cli.verbose = verbose
+func (cli *CLI) ShowDetails(showDetails int) {
+	cli.showDetails = showDetails
 }
 
 func (cli *CLI) Initialize() bool {
 	user, _, err := cli.client.Users.Get(cli.context, "")
     if err != nil {
-        fmt.Println("GitHub API authentication failed. Token may be invalid.")
+        fmt.Println("GitHub API authentication failed. Token may be invalid.", cli.token)
         return false
     }
 	
@@ -92,7 +92,7 @@ func (cli *CLI) GetRepos() []*github.Repository {
 
 func (cli *CLI) RepoStat(w io.Writer) {
 	for repo := range cli.repoChannel {
-		if cli.verbose == 1 {
+		if cli.showDetails == 1 {
 	        fmt.Print(".")
 	    }
 		
@@ -109,7 +109,7 @@ func (cli *CLI) RepoStat(w io.Writer) {
             }
 		}
 
-        if cli.verbose == 1 {
+        if cli.showDetails == 1 {
         	fmt.Fprintf(w, "%s\t%d\t%d\t\n", repo.GetFullName(), viewCount, uniqueCount)
         }
 
@@ -122,14 +122,14 @@ func (cli *CLI) RepoStat(w io.Writer) {
 
 func (cli *CLI) Execute(w io.Writer) {
 	fmt.Print("Checking repositories ")
-	
+
     repos     := cli.GetRepos()
     repoCount := len(repos)
     
     cli.accountTotalChannel  = make(chan int, repoCount)
     cli.accountUniqueChannel = make(chan int, repoCount)
 
-    if cli.verbose == 1 {
+    if cli.showDetails == 1 {
 		fmt.Fprintf(w, "Repository\tTotal View\tUnique View\t\n")
 	}
 
