@@ -7,6 +7,7 @@ import (
 func New() *ucli.App {
 	app := &ucli.App{
         Name: "github-stats",
+        Version:     "0.0.2",
         Usage: "Get the total visit stats of your GitHub repositories",
         UsageText: "github-stats [global options]",
 	    Authors: []*ucli.Author{
@@ -20,9 +21,9 @@ func New() *ucli.App {
                 Value: 0,
             },
             &ucli.IntFlag{
-                Name:  "verbose",
-                Aliases: []string{"v"},
-                Usage: "Show verbose output or not. 1 for verbose. Default is 0",
+                Name:  "show-details",
+                Aliases: []string{"s"},
+                Usage: "Show detailed output or not. 0 to close. Default is 1",
                 Value: 1,
             },
             &ucli.StringFlag{
