@@ -7,7 +7,7 @@ import (
 func New() *ucli.App {
 	app := &ucli.App{
         Name: "github-stats",
-        Version:     "0.0.4",
+        Version:     "0.0.5",
         Usage: "Get the total visit stats of your GitHub repositories",
         UsageText: "github-stats [global options]",
 	    Authors: []*ucli.Author{
