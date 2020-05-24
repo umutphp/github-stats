@@ -158,6 +158,8 @@ func (cli *CLI) Finiliaze(
     		close(cli.haltChannel)
             close(cli.accountTotalChannel)
             close(cli.accountUniqueChannel)
+            fmt.Println(".")
+            fmt.Println("")
     	}
 	}
 
