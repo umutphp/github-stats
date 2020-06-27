@@ -74,8 +74,11 @@ func (cli *CLI) Initialize() bool {
 }
 
 func (cli *CLI) GetRepos() []*github.Repository {
+	opts := new(github.RepositoryListOptions)
+	opts.PerPage = 1000
+	opts.Page = 1
 	// list all repositories for the authenticated user
-	repos, _, err := cli.client.Repositories.List(cli.context, cli.username, nil)
+	repos, _, err := cli.client.Repositories.List(cli.context, cli.username, opts)
 
 	if err != nil {
 		fmt.Println("Cannot fetch repositories from GitHub. Error message:", err)
