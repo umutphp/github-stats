@@ -1,42 +1,42 @@
 package app
 
 import (
-  ucli "github.com/urfave/cli/v2"
+	ucli "github.com/urfave/cli/v2"
 )
 
 func New() *ucli.App {
-  app := &ucli.App{
-    Name:      "github-stats",
-    Version:   "0.0.6",
-    Usage:     "Get the total visit stats of your GitHub repositories",
-    UsageText: "github-stats [global options]",
-    Authors: []*ucli.Author{
-      {Name: "Umut Işık", Email: "umutphp@gmail.com"},
-    },
-    Flags: []ucli.Flag{
-      &ucli.IntFlag{
-        Name:    "day",
-        Aliases: []string{"d"},
-        Usage:   "The number of days from today to show the stats",
-        Value:   0,
-      },
-      &ucli.IntFlag{
-        Name:    "show-details",
-        Aliases: []string{"s"},
-        Usage:   "Show detailed output or not. 0 to close. Default is 1",
-        Value:   1,
-      },
-      &ucli.StringFlag{
-        Name:     "token",
-        Aliases:  []string{"t"},
-        Value:    "",
-        Usage:    "Personal access token got from GitHub to use the API",
-        Required: true,
-      },
-    },
-  }
+	app := &ucli.App{
+		Name:      "github-stats",
+		Version:   "0.0.6",
+		Usage:     "Get the total visit stats of your GitHub repositories",
+		UsageText: "github-stats [global options]",
+		Authors: []*ucli.Author{
+			{Name: "Umut Işık", Email: "umutphp@gmail.com"},
+		},
+		Flags: []ucli.Flag{
+			&ucli.IntFlag{
+				Name:    "day",
+				Aliases: []string{"d"},
+				Usage:   "The number of days from today to show the stats",
+				Value:   0,
+			},
+			&ucli.IntFlag{
+				Name:    "show-details",
+				Aliases: []string{"s"},
+				Usage:   "Show detailed output or not. 0 to close. Default is 1",
+				Value:   1,
+			},
+			&ucli.StringFlag{
+				Name:     "token",
+				Aliases:  []string{"t"},
+				Value:    "",
+				Usage:    "Personal access token got from GitHub to use the API",
+				Required: true,
+			},
+		},
+	}
 
-  app.CustomAppHelpTemplate = `
+	app.CustomAppHelpTemplate = `
 NAME:
    {{.Name}}{{if .Usage}} - {{.Usage}}{{end}}
 USAGE:
@@ -56,5 +56,5 @@ COPYRIGHT:
 
 `
 
-  return app
+	return app
 }
