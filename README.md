@@ -32,7 +32,6 @@ OPTIONS:
    --token value, -t value         Personal access token got from GitHub to use the API
    --help, -h                      show help (default: false)
    --version, -v                   print the version (default: false)
-
 ```
 
 ## How To Contribute
